@@ -7,26 +7,53 @@ namespace deliver
 {
     class Item
     {
-        public int itemId = 0;
-        public String itemName = "";
-        public String itemDesc = "";
-        public decimal itemPrice = 0;
-        String itemDimens = "";
-        int itemWeight = 0;
-        public Item(string name, string desc, decimal price)
+        public String itemId { get; set; } = "";
+        public String itemName { get; set; } = "";
+        public String itemDesc { get; set; } = "";
+        public String itemPrice { get; set; } = "";
+        public String itemDimens { get; set; } = "";
+        public String itemWeight { get; set; } = "";
+        public Item(String id, String nam, String des, String pric, String dims, String weit)
         {
-            itemName = name;
-            itemDesc = desc;
-            itemPrice = price;
+            itemId = id;
+            itemName = nam;
+            itemDesc = des;
+            itemPrice = pric;
+            itemDimens = dims;
+            itemWeight = weit;
         }
+        /*public void DBAddItem(String SqlStr)
+           {
+               SqlConnection connection = new(SqlStr);
+               using(connection)
+               {
+                   StringBuilder sb = new();
+                   sb.Append("USE master; ");
+                   sb.Append("INSERT INTO inventory (TableNameId, ItemName, ItemDescr, ItemPrice, ItemDiment, ItemWeight) VALUES ");
+                   sb.Append("(@id, @itName, @itDescr, @itPrice, @itDimen, @itWeight);");
+                   String sql = sb.ToString();
+                   using (SqlCommand command = new SqlCommand(sql, connection))
+                   {   
+                       command.Parameters.AddWithValue("@id", itemId);
+                       command.Parameters.AddWithValue("@itName", itemName);
+                       command.Parameters.AddWithValue("@itDescr", itemDesc);
+                       command.Parameters.AddWithValue("@itPrice", itemPrice);
+                       command.Parameters.AddWithValue("@itDimen", itemDimens);
+                       command.Parameters.AddWithValue("@itWeight", itemWeight);
+                       connection.Open();
+                       int rowsAffected = command.ExecuteNonQuery();
+                       Console.WriteLine(rowsAffected + " row(s) inserted");
+                   }
+               }
+           }*/
     }
     class Customer
     {
-        public string firstName = "";
-        public string lastName = "";
-        public string homeAddress = "";
-        public string coords = "";
-        public DateOnly dateCreated;
+        public string firstName { get; set; } = "";
+        public string lastName { get; set; } = "";
+        public string homeAddress { get; set; } = "";
+        public string coords { get; set; } = "";
+        public DateOnly dateCreated { get; set; }
         public Customer(string firName, string lasName, string homeAdd, DateOnly dateCrtd)
         {
             firstName = firName;
@@ -49,16 +76,19 @@ namespace deliver
             builder.TrustServerCertificate = true;
 
             adminConnect adCon = new adminConnect();
+            adCon.SqlStr = builder.ConnectionString;
             //adCon.Connect(builder.ConnectionString);
-            
-            String itId = "2";
-            String itName = "regulatorioum";
-            String itDes = "regulatorium for regulating";
-            String itPrice = "34.65";
-            String itDiment = "4x4x6";
-            String itWeight = "45";
-            //adCon.DBAddItem(builder.ConnectionString, itId, itName, itDes, itPrice, itDiment, itWeight);
-            adCon.DBdispItems(builder.ConnectionString);
+
+            String itId = "4";
+            String itName = "twirly";
+            String itDes = "for twirling";
+            String itPrice = "134.65";
+            String itDiment = "45x41x6";
+            String itWeight = "5";
+
+            Item banner = new(itId, itName, itDes, itPrice, itDiment, itWeight);
+            adCon.DBAddItem(banner);
+            //adCon.DBdispItems(builder.ConnectionString);
             /* System.Console.WriteLine("1: Create item");
              System.Console.WriteLine("2: Create customer");
              System.Console.WriteLine("3: show items");
@@ -81,13 +111,16 @@ namespace deliver
         }
         public abstract class DbConnection
         {
-            String connString;
+
+            public String SqlStr;
             //public abstract void Connect(String connString);
-            public abstract void DBdispItems(String SqlStr);
-            public abstract void DBAddItem(String SqlStr, String id, String nam, String Des, String pric, String Dims, String weit);
-            public abstract void DBDeleteItem(String connection, String id);
+            public abstract void DBdispItems();
+            public abstract void DBAddItem(Item item);
+            public abstract void DBDeleteItem(String id);
+            public abstract void DBUpdateCustomer(String id);
+            public abstract void DBDeleteCustomer(String id);
         }
-        public static SqlConnection getConnection(String SqlStr)
+        public static SqlConnection GetConnection(String SqlStr)
         {
             try
             {
@@ -120,9 +153,9 @@ namespace deliver
                     //return null;
                 }
             }*/
-            public override void DBdispItems(String SqlStr)
+            public override void DBdispItems()
             {
-                SqlConnection connecti = getConnection(SqlStr);
+                SqlConnection connecti = GetConnection(SqlStr);
                 using (connecti)
                 {
                     String sql = "SELECT ItemName, ItemDescr, ItemPrice FROM inventory;";
@@ -150,10 +183,10 @@ namespace deliver
                     }
                 }
             }
-            public override void DBAddItem(String SqlStr, String id, String nam, String des, String pric, String dims, String weit)
+            public override void DBAddItem(Item item)
             {
-                SqlConnection connection = getConnection(SqlStr);
-                using(connection)
+                SqlConnection connection = GetConnection(SqlStr);
+                using (connection)
                 {
                     StringBuilder sb = new();
                     sb.Append("USE master; ");
@@ -161,36 +194,69 @@ namespace deliver
                     sb.Append("(@id, @itName, @itDescr, @itPrice, @itDimen, @itWeight);");
                     String sql = sb.ToString();
                     using (SqlCommand command = new SqlCommand(sql, connection))
-                    {   
-                        command.Parameters.AddWithValue("@id", id);
-                        command.Parameters.AddWithValue("@itName", nam);
-                        command.Parameters.AddWithValue("@itDescr", des);
-                        command.Parameters.AddWithValue("@itPrice", pric);
-                        command.Parameters.AddWithValue("@itDimen", dims);
-                        command.Parameters.AddWithValue("@itWeight", weit);
+                    {
+                        command.Parameters.AddWithValue("@id", item.itemId);
+                        command.Parameters.AddWithValue("@itName", item.itemName);
+                        command.Parameters.AddWithValue("@itDescr", item.itemDesc);
+                        command.Parameters.AddWithValue("@itPrice", item.itemPrice);
+                        command.Parameters.AddWithValue("@itDimen", item.itemDimens);
+                        command.Parameters.AddWithValue("@itWeight", item.itemWeight);
                         connection.Open();
                         int rowsAffected = command.ExecuteNonQuery();
                         Console.WriteLine(rowsAffected + " row(s) inserted");
                     }
                 }
             }
-            public override void DBDeleteItem(string SqlStr, string id)
+            public override void DBDeleteItem(string id)
             {
-                SqlConnection connection = getConnection(SqlStr);
-                using(connection)
+                SqlConnection connection = GetConnection(SqlStr);
+                using (connection)
                 {
                     StringBuilder sb = new();
                     sb.Append("DELETE FROM inventory WHERE id = @id");
                     String sql = sb.ToString();
                     using (SqlCommand command = new SqlCommand(sql, connection))
-                    {   
+                    {
                         command.Parameters.AddWithValue("@id", id);
                         connection.Open();
                         int rowsAffected = command.ExecuteNonQuery();
                         Console.WriteLine(rowsAffected + " row(s) inserted");
                     }
                 }
-                
+            }
+            public override void DBUpdateCustomer(String id)
+            {
+                SqlConnection connection = GetConnection(SqlStr);
+                using (connection)
+                {
+                    String userToUpdate = "juju";
+                    StringBuilder sb = new StringBuilder();
+                    sb.Append("UPDATE Customers SET Location = N'Some Place St' WHERE LastName = @lastName");
+                    String sql = sb.ToString();
+                    using (SqlCommand command = new SqlCommand(sql, connection))
+                    {
+                        command.Parameters.AddWithValue("@lastName", userToUpdate);
+                        int rowsAffected = command.ExecuteNonQuery();
+                        System.Console.WriteLine(rowsAffected);
+                    }
+                }
+            }
+            public override void DBDeleteCustomer(String id)
+            {
+                SqlConnection connection = GetConnection(SqlStr);
+                using (connection)
+                {
+                    String userToDelete = "juju";
+                    StringBuilder sb = new();
+                    sb.Append("DELETE FROM Customers WERE LastName = @lastName");
+                    String sql = sb.ToString();
+                    using (SqlCommand command = new SqlCommand(sql, connection))
+                    {
+                        command.Parameters.AddWithValue("@lastName", userToDelete);
+                        int rowsAffected = command.ExecuteNonQuery();
+                        System.Console.WriteLine(rowsAffected);
+                    }
+                }
             }
         }
 
@@ -202,36 +268,12 @@ namespace deliver
             string itemDesc = Console.ReadLine();
             System.Console.WriteLine("pls item price");
             string itemPrice = Console.ReadLine();
-            Item itm = new(itemName, itemDesc, Convert.ToDecimal(itemPrice));
+            //Item itm = new(itemName, itemDesc, Convert.ToDecimal(itemPrice));
             System.Console.WriteLine("item " + itemName + " created");
         }
-        
-        public static void DBUpdateCustomer(SqlConnection connection)
-        {
-            String userToUpdate = "juju";
-            StringBuilder sb = new StringBuilder();
-            sb.Append("UPDATE Customers SET Location = N'Some Place St' WHERE LastName = @lastName");
-            String sql = sb.ToString();
-            using (SqlCommand command = new SqlCommand(sql, connection))
-            {
-                command.Parameters.AddWithValue("@lastName", userToUpdate);
-                int rowsAffected = command.ExecuteNonQuery();
-                System.Console.WriteLine(rowsAffected);
-            }
-        }
-        public static void DBDeleteCustomer(SqlConnection connection)
-        {
-            String userToDelete = "juju";
-            StringBuilder sb = new();
-            sb.Append("DELETE FROM Customers WERE LastName = @lastName");
-            String sql = sb.ToString();
-            using (SqlCommand command = new SqlCommand(sql, connection))
-            {
-                command.Parameters.AddWithValue("@lastName", userToDelete);
-                int rowsAffected = command.ExecuteNonQuery();
-                System.Console.WriteLine(rowsAffected);
-            }
-        }
+
+
+
         public static void InputCreateCustomer()
         {
             System.Console.WriteLine("plas customer name?");
