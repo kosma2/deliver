@@ -22,30 +22,6 @@ namespace deliver
             itemDimens = dims;
             itemWeight = weit;
         }
-        /*public void DBAddItem(String SqlStr)
-           {
-               SqlConnection connection = new(SqlStr);
-               using(connection)
-               {
-                   StringBuilder sb = new();
-                   sb.Append("USE master; ");
-                   sb.Append("INSERT INTO inventory (TableNameId, ItemName, ItemDescr, ItemPrice, ItemDiment, ItemWeight) VALUES ");
-                   sb.Append("(@id, @itName, @itDescr, @itPrice, @itDimen, @itWeight);");
-                   String sql = sb.ToString();
-                   using (SqlCommand command = new SqlCommand(sql, connection))
-                   {   
-                       command.Parameters.AddWithValue("@id", itemId);
-                       command.Parameters.AddWithValue("@itName", itemName);
-                       command.Parameters.AddWithValue("@itDescr", itemDesc);
-                       command.Parameters.AddWithValue("@itPrice", itemPrice);
-                       command.Parameters.AddWithValue("@itDimen", itemDimens);
-                       command.Parameters.AddWithValue("@itWeight", itemWeight);
-                       connection.Open();
-                       int rowsAffected = command.ExecuteNonQuery();
-                       Console.WriteLine(rowsAffected + " row(s) inserted");
-                   }
-               }
-           }*/
     }
     class Customer
     {
@@ -54,6 +30,7 @@ namespace deliver
         public string homeAddress { get; set; } = "";
         public string coords { get; set; } = "";
         public DateOnly dateCreated { get; set; }
+
         public Customer(string firName, string lasName, string homeAdd, DateOnly dateCrtd)
         {
             firstName = firName;
@@ -61,8 +38,13 @@ namespace deliver
             homeAddress = homeAdd;
             dateCreated = dateCrtd;
         }
-
     }
+    class Member
+    {
+        public string login { get; set; } = "";
+        public string pass { get; set; } = "";
+    }
+
     class Program
     {
 
@@ -77,17 +59,12 @@ namespace deliver
 
             adminConnect adCon = new adminConnect();
             adCon.SqlStr = builder.ConnectionString;
-            //adCon.Connect(builder.ConnectionString);
+            
+            InputUserCreate();
 
-            String itId = "4";
-            String itName = "twirly";
-            String itDes = "for twirling";
-            String itPrice = "134.65";
-            String itDiment = "45x41x6";
-            String itWeight = "5";
+            Member memb = createMember(login);
+            //adCon.DBAddMember(memb);
 
-            Item banner = new(itId, itName, itDes, itPrice, itDiment, itWeight);
-            adCon.DBAddItem(banner);
             //adCon.DBdispItems(builder.ConnectionString);
             /* System.Console.WriteLine("1: Create item");
              System.Console.WriteLine("2: Create customer");
@@ -109,6 +86,23 @@ namespace deliver
                      break;
              }*/
         }
+        public static void InputUserCreate()
+        {
+            Console.WriteLine("login please");
+            String login = Console.ReadLine();
+            System.Console.WriteLine("password please");
+            String pass = Console.ReadLine();
+            (String, String)  tup = (login, pass);
+            createMember(tup);
+
+        }
+        public static Member createMember(String login, String pass)
+        {
+            Member member = new();
+            member.login = login;
+            member.pass = pass;
+            return member;
+        }
         public abstract class DbConnection
         {
 
@@ -119,6 +113,7 @@ namespace deliver
             public abstract void DBDeleteItem(String id);
             public abstract void DBUpdateCustomer(String id);
             public abstract void DBDeleteCustomer(String id);
+            public abstract void DBAddMember(Member mem);
         }
         public static SqlConnection GetConnection(String SqlStr)
         {
@@ -180,6 +175,26 @@ namespace deliver
                                 reader.Close();
                             }
                         }
+                    }
+                }
+            }
+            public override void DBAddMember(Member memb)
+            {
+                SqlConnection connection = GetConnection(SqlStr);
+                using (connection)
+                {
+                    StringBuilder sb = new();
+                    sb.Append("USE master; ");
+                    sb.Append("INSERT INTO member (Login, Password) VALUES ");
+                    sb.Append("(@login, @pass);");
+                    String sql = sb.ToString();
+                    using (SqlCommand command = new SqlCommand(sql, connection))
+                    {
+                        command.Parameters.AddWithValue("@login", memb.login);
+                        command.Parameters.AddWithValue("@pass", memb.pass);
+                        connection.Open();
+                        int rowsAffected = command.ExecuteNonQuery();
+                        Console.WriteLine(rowsAffected + " row(s) inserted");
                     }
                 }
             }
