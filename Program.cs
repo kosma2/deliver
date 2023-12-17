@@ -1,71 +1,35 @@
-﻿using System.Data.SqlTypes;
-using System.Runtime.CompilerServices;
-using System.Text;
-using Microsoft.Data.SqlClient;
+﻿using Microsoft.Data.SqlClient;
+using System.Security.Cryptography;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Configuration.Json;
+using Microsoft.Extensions.Configuration.EnvironmentVariables;
+using System.IO;
+using System.Net.Http;
 
 namespace deliver
 {
-    class Item
-    {
-        public String itemId { get; set; } = "";
-        public String itemName { get; set; } = "";
-        public String itemDesc { get; set; } = "";
-        public String itemPrice { get; set; } = "";
-        public String itemDimens { get; set; } = "";
-        public String itemWeight { get; set; } = "";
-        public Item(String id, String nam, String des, String pric, String dims, String weit)
-        {
-            itemId = id;
-            itemName = nam;
-            itemDesc = des;
-            itemPrice = pric;
-            itemDimens = dims;
-            itemWeight = weit;
-        }
-    }
-    class Customer
-    {
-        public string firstName { get; set; } = "";
-        public string lastName { get; set; } = "";
-        public string homeAddress { get; set; } = "";
-        public string coords { get; set; } = "";
-        public DateOnly dateCreated { get; set; }
-
-        public Customer(string firName, string lasName, string homeAdd, DateOnly dateCrtd)
-        {
-            firstName = firName;
-            lastName = lasName;
-            homeAddress = homeAdd;
-            dateCreated = dateCrtd;
-        }
-    }
-    class Member
-    {
-        public string login { get; set; } = "";
-        public string pass { get; set; } = "";
-    }
-
-    class Program
+    partial class Program
     {
 
         public static void Main()
         {
-            SqlConnectionStringBuilder builder = new();
+            /*SqlConnectionStringBuilder builder = new();
             builder.DataSource = "localhost";
             builder.InitialCatalog = "master";
             builder.UserID = "kosma";
             builder.Password = "setANewPasswordPls";
-            builder.TrustServerCertificate = true;
-
+            builder.TrustServerCertificate = true;*/
+            IConfiguration config = new ConfigurationBuilder()
+                 .SetBasePath(Directory.GetCurrentDirectory())
+                 .AddJsonFile("appsettings.json")
+                 .Build();
             adminConnect adCon = new adminConnect();
-            adCon.SqlStr = builder.ConnectionString;
-            
-            InputUserCreate();
+            string connectionString = config.GetConnectionString("DefaultConnection");
+            adCon.SqlStr = connectionString;
 
-            Member memb = createMember(login);
-            //adCon.DBAddMember(memb);
+            //adCon.DBAddMember(Login());
+            adCon.DBCheckLogin(InputMemberCreate());
 
-            //adCon.DBdispItems(builder.ConnectionString);
             /* System.Console.WriteLine("1: Create item");
              System.Console.WriteLine("2: Create customer");
              System.Console.WriteLine("3: show items");
@@ -86,34 +50,42 @@ namespace deliver
                      break;
              }*/
         }
-        public static void InputUserCreate()
+        public static String HashPassword(string password, byte[] salt)
         {
+            using (var pbkdf2 = new Rfc2898DeriveBytes(password, salt, 10000, HashAlgorithmName.SHA256))
+            {
+                byte[] hashBytes = pbkdf2.GetBytes(32);
+                return Convert.ToBase64String(hashBytes);
+            }
+        }
+        public static Byte[] CreateSalt()
+        {
+            byte[] salt = new byte[32];
+            using (var rng = new RNGCryptoServiceProvider())
+            {
+                rng.GetBytes(salt);
+            }
+            return salt;
+        }
+        public static Member InputMemberCreate()
+        {
+            System.Console.WriteLine("creating new member");
             Console.WriteLine("login please");
             String login = Console.ReadLine();
             System.Console.WriteLine("password please");
             String pass = Console.ReadLine();
-            (String, String)  tup = (login, pass);
-            createMember(tup);
-
+            Member mem = new(login, pass);
+            return mem;
         }
-        public static Member createMember(String login, String pass)
+        public static Member Login()
         {
-            Member member = new();
-            member.login = login;
-            member.pass = pass;
-            return member;
-        }
-        public abstract class DbConnection
-        {
-
-            public String SqlStr;
-            //public abstract void Connect(String connString);
-            public abstract void DBdispItems();
-            public abstract void DBAddItem(Item item);
-            public abstract void DBDeleteItem(String id);
-            public abstract void DBUpdateCustomer(String id);
-            public abstract void DBDeleteCustomer(String id);
-            public abstract void DBAddMember(Member mem);
+            System.Console.WriteLine("loggin you in");
+            System.Console.WriteLine("login name please");
+            String login = Console.ReadLine();
+            System.Console.WriteLine("password pls");
+            String pass = Console.ReadLine();
+            Member mem = new(login, pass);
+            return mem;
         }
         public static SqlConnection GetConnection(String SqlStr)
         {
@@ -128,150 +100,6 @@ namespace deliver
                 Console.WriteLine(e.ToString());
                 System.Console.WriteLine("connection returned nyull");
                 return null;
-            }
-        }
-        public class adminConnect : DbConnection
-        {
-            /*public override void Connect(String connString)
-            {
-                try
-                {
-                    System.Console.WriteLine("Connecting to database...");
-                    using SqlConnection connection = new(connString);
-                    connection.Open();
-                    System.Console.WriteLine("connection open");
-                }
-                catch (SqlException e)
-                {
-                    Console.WriteLine(e.ToString());
-                    System.Console.WriteLine("connection returned nyull");
-                    //return null;
-                }
-            }*/
-            public override void DBdispItems()
-            {
-                SqlConnection connecti = GetConnection(SqlStr);
-                using (connecti)
-                {
-                    String sql = "SELECT ItemName, ItemDescr, ItemPrice FROM inventory;";
-                    using (SqlCommand command = new SqlCommand(sql, connecti))
-                    {
-                        connecti.Open();
-                        using (SqlDataReader reader = command.ExecuteReader())
-                        {
-                            if (reader.HasRows)
-                            {
-                                while (reader.Read())
-                                {
-                                    for (int i = 0; i < 3; i++)
-                                    {
-                                        System.Console.WriteLine(reader[i]);
-                                    }
-                                }
-                            }
-                            else
-                            {
-                                Console.WriteLine("No rows found.");
-                                reader.Close();
-                            }
-                        }
-                    }
-                }
-            }
-            public override void DBAddMember(Member memb)
-            {
-                SqlConnection connection = GetConnection(SqlStr);
-                using (connection)
-                {
-                    StringBuilder sb = new();
-                    sb.Append("USE master; ");
-                    sb.Append("INSERT INTO member (Login, Password) VALUES ");
-                    sb.Append("(@login, @pass);");
-                    String sql = sb.ToString();
-                    using (SqlCommand command = new SqlCommand(sql, connection))
-                    {
-                        command.Parameters.AddWithValue("@login", memb.login);
-                        command.Parameters.AddWithValue("@pass", memb.pass);
-                        connection.Open();
-                        int rowsAffected = command.ExecuteNonQuery();
-                        Console.WriteLine(rowsAffected + " row(s) inserted");
-                    }
-                }
-            }
-            public override void DBAddItem(Item item)
-            {
-                SqlConnection connection = GetConnection(SqlStr);
-                using (connection)
-                {
-                    StringBuilder sb = new();
-                    sb.Append("USE master; ");
-                    sb.Append("INSERT INTO inventory (TableNameId, ItemName, ItemDescr, ItemPrice, ItemDiment, ItemWeight) VALUES ");
-                    sb.Append("(@id, @itName, @itDescr, @itPrice, @itDimen, @itWeight);");
-                    String sql = sb.ToString();
-                    using (SqlCommand command = new SqlCommand(sql, connection))
-                    {
-                        command.Parameters.AddWithValue("@id", item.itemId);
-                        command.Parameters.AddWithValue("@itName", item.itemName);
-                        command.Parameters.AddWithValue("@itDescr", item.itemDesc);
-                        command.Parameters.AddWithValue("@itPrice", item.itemPrice);
-                        command.Parameters.AddWithValue("@itDimen", item.itemDimens);
-                        command.Parameters.AddWithValue("@itWeight", item.itemWeight);
-                        connection.Open();
-                        int rowsAffected = command.ExecuteNonQuery();
-                        Console.WriteLine(rowsAffected + " row(s) inserted");
-                    }
-                }
-            }
-            public override void DBDeleteItem(string id)
-            {
-                SqlConnection connection = GetConnection(SqlStr);
-                using (connection)
-                {
-                    StringBuilder sb = new();
-                    sb.Append("DELETE FROM inventory WHERE id = @id");
-                    String sql = sb.ToString();
-                    using (SqlCommand command = new SqlCommand(sql, connection))
-                    {
-                        command.Parameters.AddWithValue("@id", id);
-                        connection.Open();
-                        int rowsAffected = command.ExecuteNonQuery();
-                        Console.WriteLine(rowsAffected + " row(s) inserted");
-                    }
-                }
-            }
-            public override void DBUpdateCustomer(String id)
-            {
-                SqlConnection connection = GetConnection(SqlStr);
-                using (connection)
-                {
-                    String userToUpdate = "juju";
-                    StringBuilder sb = new StringBuilder();
-                    sb.Append("UPDATE Customers SET Location = N'Some Place St' WHERE LastName = @lastName");
-                    String sql = sb.ToString();
-                    using (SqlCommand command = new SqlCommand(sql, connection))
-                    {
-                        command.Parameters.AddWithValue("@lastName", userToUpdate);
-                        int rowsAffected = command.ExecuteNonQuery();
-                        System.Console.WriteLine(rowsAffected);
-                    }
-                }
-            }
-            public override void DBDeleteCustomer(String id)
-            {
-                SqlConnection connection = GetConnection(SqlStr);
-                using (connection)
-                {
-                    String userToDelete = "juju";
-                    StringBuilder sb = new();
-                    sb.Append("DELETE FROM Customers WERE LastName = @lastName");
-                    String sql = sb.ToString();
-                    using (SqlCommand command = new SqlCommand(sql, connection))
-                    {
-                        command.Parameters.AddWithValue("@lastName", userToDelete);
-                        int rowsAffected = command.ExecuteNonQuery();
-                        System.Console.WriteLine(rowsAffected);
-                    }
-                }
             }
         }
 
