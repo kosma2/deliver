@@ -1,1 +1,9 @@
-a simple program for a hypothetical drone delivery service. Includes  basic login for customers and admin, ordering, inventory management, etc.
+The system is designed to manage a delivery service, from order placement to processing and customer management.
+The abstract DbConnection class is used for database interactions, which are specialized in adminConnect and userConnect for different user roles.
+Login details are handled by SecurityHelper, using hash and salt.
+The application is a robust and scalable solution by combining inheritance and detailed class design.
+
+
+
+
+
