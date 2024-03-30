@@ -22,12 +22,12 @@ namespace deliver
     public class UserSession
     {
         public int MemberId {get; private set;}
-        public UserSession(int memberId)
+        public int CustomerId {get; private set;}
+        public UserSession(int memberId, int custId)
         {
             MemberId = memberId;
+            CustomerId = custId;
         }
-        //int MemberId = memberId;
-
     }
 }
 }

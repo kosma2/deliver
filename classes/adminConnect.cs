@@ -7,6 +7,46 @@ namespace deliver
     {
         public class adminConnect : DbConnection
         {
+            public override string GetItemName(int itemId)
+            {
+                using (SqlConnection connection = GetConnection(SqlStr))
+                {
+                    String sql = "SELECT ItemName FROM inventory WHERE ItemId = @itemId";
+                    using (SqlCommand command = new(sql, connection))
+                    {
+                        command.Parameters.AddWithValue("@itemId", itemId);
+                        connection.Open();
+                        string resultItemName = Convert.ToString(command.ExecuteScalar());
+                        return resultItemName;
+                    }
+                }
+            }
+            public override int DBGetCustomerId(int memId)// retrieves MemberId from customer table
+            {
+                SqlConnection connection = GetConnection(SqlStr);
+                using (connection)
+                {
+                    String sqlCommand = "SELECT CustomerId FROM customer WHERE CustomerId = @memId";
+                    using (SqlCommand command = new(sqlCommand, connection))
+                    {
+                        command.Parameters.AddWithValue("@memId", memId);
+                        connection.Open();
+                        using (SqlDataReader reader = command.ExecuteReader())
+                        {
+                            if (reader.Read())
+                            {
+                                int resultMemId= reader.GetInt32(0);
+                                return resultMemId;
+                            }
+                            else
+                            {
+                                System.Console.WriteLine("nothing to read here");
+                                return -1;
+                            }
+                        }
+                    }
+                }
+            }
             public override void DBdeleteOrder(int orderId)
             {}
             public override (int,int) InterfaceCreateOrder()
@@ -34,42 +74,11 @@ namespace deliver
                     //return null;
                 }
             }*/
-           public override List<object> DBListItems() // dispays all items in inventory [itemId][itemName]
+           public override List<(int ItemId, String ItemName)> DBListItems() // dispays all items in inventory [itemId][itemName]
             {
-                SqlConnection connecti = GetConnection(SqlStr);
-                using (connecti)
-                {
-                    String sql = "SELECT ItemId, ItemName FROM inventory;"; //, ItemDescr, ItemPrice FROM inventory;";
-                    using (SqlCommand command = new SqlCommand(sql, connecti))
-                    {
-                        connecti.Open();
-                        using (SqlDataReader reader = command.ExecuteReader())
-                        {
-                            if (reader.HasRows)
-                            {
-                                int rowCount = 0;
-                                var IdAndName = new List<object>  // list of lists
-                                {
-                                    new List<int>(),                            // list of ItemId
-                                    new List<string>()                          // list of ItemName
-                                };
-                                while (reader.Read())
-                                {
-                                    int conv = Convert.ToInt32(reader["ItemId"]);
-                                    ((List<int>)IdAndName[0]).Add(conv);  // adds 
-                                    ((List<string>)IdAndName[1]).Add((String)reader["ItemName"]);
-                                }
-                                return IdAndName;
-                            }
-                            else
-                            {
-                                Console.WriteLine("No rows found.");
-                                reader.Close();
-                                return null;
-                            }
-                        }
-                    }
-                }
+                                                List<(int,string)> idAndName = new();
+
+                return idAndName;
             }
             public override int DBCheckLogin(Member mem)
             {
@@ -201,18 +210,18 @@ namespace deliver
                     }
                 }
             }
-            public override void DBDeleteCustomer(String id)
+            public override void DBDeleteCustomer(int CustomerId)
             {
                 SqlConnection connection = GetConnection(SqlStr);
                 using (connection)
                 {
-                    String userToDelete = "juju";
                     StringBuilder sb = new();
-                    sb.Append("DELETE FROM Customers WERE LastName = @lastName");
+                    sb.Append("DELETE FROM Customer WHERE CustomerId = @custId");
                     String sql = sb.ToString();
                     using (SqlCommand command = new SqlCommand(sql, connection))
                     {
-                        command.Parameters.AddWithValue("@lastName", userToDelete);
+                        command.Parameters.AddWithValue("@custId", CustomerId);
+                        connection.Open();
                         int rowsAffected = command.ExecuteNonQuery();
                         System.Console.WriteLine(rowsAffected);
                     }

@@ -15,7 +15,7 @@ namespace deliver
             Member mem = new(login, pass);
             return mem;
         }
-        public static Member InputMemberCreate()
+        public static Member InputCreateMember()
         {
             System.Console.WriteLine("creating new member");
             Console.WriteLine("login please");
@@ -25,7 +25,7 @@ namespace deliver
             Member mem = new(login, pass);
             return mem;
         }
-        public static Member Login()
+        public static Member Login()       //asks input for login and password, returns a Member with those values
         {
             System.Console.WriteLine("loggin you in");
             System.Console.WriteLine("login name please");
@@ -54,7 +54,12 @@ namespace deliver
             string custLName = Console.ReadLine();
             System.Console.WriteLine(" customer addy pls");
             string custAddy = Console.ReadLine();
-            Customer cust = new(memberId, custName, custLName, custAddy);
+            System.Console.WriteLine(" customer LAT pls");
+            string lattitude = Console.ReadLine();
+            System.Console.WriteLine(" customer LON pls");
+            string longitude = Console.ReadLine();
+            string coords = $"geometry::STPointFromText('POINT({lattitude} {longitude})', 4326)";
+            Customer cust = new(memberId, custName, custLName, custAddy, coords);
             System.Console.WriteLine("customer " + custLName + " created");
             return cust;
         }

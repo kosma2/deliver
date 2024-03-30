@@ -2,22 +2,21 @@ namespace deliver
 {
     class Customer : Member
     {
-        public string firstName { get; set; } = "";
-        public string lastName { get; set; } = "";
-        public string homeAddress { get; set; } = "";
-        public string coords { get; set; } = "2,3333 W, 34.9999 S";
-        public DateTime dateCreated { get; set; }
+        public string FirstName { get; set; } = "";
+        public string LastName { get; set; } = "";
+        public string HomeAddress { get; set; } = "";
+        public string GeoPoint { get; set; } = "";
+        public DateTime DateCreated { get; set; }
 
-        public Customer(int memberId,string firName, string lasName, string homeAdd)
+        public Customer(int memberId,string firName, string lasName, string homeAdd, string geoPt)
         : base(null, null)
         {
-            //login = log;
-            //pass = passWord;
             MemberId = memberId;
-            firstName = firName;
-            lastName = lasName;
-            homeAddress = homeAdd;
-            dateCreated = DateTime.Now;
+            FirstName = firName;
+            LastName = lasName;
+            HomeAddress = homeAdd;
+            GeoPoint = geoPt;
+            DateCreated = DateTime.Now;
         }
     }
 }

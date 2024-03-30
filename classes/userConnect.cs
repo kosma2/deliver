@@ -1,3 +1,4 @@
+using System.Data;
 using System.Data.SqlTypes;
 using System.Text;
 using Microsoft.Data.SqlClient;
@@ -8,29 +9,57 @@ namespace deliver
     {
         public class userConnect : DbConnection
         {
-            
-            public override void DBdeleteOrder(int orderId)  // deletes the order and associated orderItems
-            {   
-                using(SqlConnection connection = GetConnection(SqlStr))
+            public UserSession CurrentSession { get; private set; }
+            public override int DBGetCustomerId(int memId)// retrieves MemberId from customer table
             {
-                SqlTransaction transaction = connection.BeginTransaction();
-                try{
-                connection.Open();
-                SqlCommand command = connection.CreateCommand();
-                command.Transaction = transaction;
-                command.CommandText = "DELETE FROM orders WHERE OrderId = @orderId";
-                command.ExecuteNonQuery();
-                command.CommandText = "DELETE FROM orderItems WHERE OrderId = @orderId";
-                command.ExecuteNonQuery();
-                transaction.Commit();
-
-                }catch (Exception)
+                SqlConnection connection = GetConnection(SqlStr);
+                using (connection)
                 {
-                    transaction.Rollback();
-                    throw;
+                    String sqlCommand = "SELECT CustomerId FROM customer WHERE CustomerId = @memId";
+                    using (SqlCommand command = new(sqlCommand, connection))
+                    {
+                        command.Parameters.AddWithValue("@memId", memId);
+                        connection.Open();
+                        using (SqlDataReader reader = command.ExecuteReader())
+                        {
+                            if (reader.Read())
+                            {
+                                int resultMemId= reader.GetInt32(0);
+                                return resultMemId;
+                            }
+                            else
+                            {
+                                System.Console.WriteLine("nothing to read here");
+                                return -1;
+                            }
+                        }
+                    }
                 }
             }
-                
+            public override void DBdeleteOrder(int orderId)  // deletes the order and associated orderItems
+            {
+                using (SqlConnection connection = GetConnection(SqlStr))
+                {
+                    SqlTransaction transaction = connection.BeginTransaction();
+                    try
+                    {
+                        connection.Open();
+                        SqlCommand command = connection.CreateCommand();
+                        command.Transaction = transaction;
+                        command.CommandText = "DELETE FROM orders WHERE OrderId = @orderId";
+                        command.ExecuteNonQuery();
+                        command.CommandText = "DELETE FROM orderItems WHERE OrderId = @orderId";
+                        command.ExecuteNonQuery();
+                        transaction.Commit();
+
+                    }
+                    catch (Exception)
+                    {
+                        transaction.Rollback();
+                        throw;
+                    }
+                }
+
             }
             public void ShowOrdersNitems(int customerId)
             {
@@ -46,10 +75,10 @@ namespace deliver
                     }
                 }
             }
-            public override (int, int) InterfaceCreateOrder()
+            public override (int, int) InterfaceCreateOrder()  // interface for creating order, returns a tuple (item#, quantity)
             {
-                //userConnect usConnect = new userConnect();
-                List<object> dispItems = DBListItems();
+                /*/userConnect usConnect = new userConnect();
+                List<(int, String)> dispItems = DBListItems();
                 var subSetString = dispItems[1] as List<string>;
                 foreach (string item in subSetString)
                 {
@@ -69,8 +98,8 @@ namespace deliver
                     System.Console.WriteLine("invalid number");
                 }
                 System.Console.WriteLine("how many you want?");
-                int quant = Convert.ToInt32(Console.ReadLine());
-                return (inputItemId, quant);
+                int quant = Convert.ToInt32(Console.ReadLine());*/
+                return (4,4);//(inputItemId, quant);
 
             }
             public override int DBcreateOrder(int itemId, int quantity) //returns orderId
@@ -138,10 +167,23 @@ namespace deliver
                     }
                 }
             }
+            public override string GetItemName(int itemId)
+            {
+                using (SqlConnection connection = GetConnection(SqlStr))
+                {
+                    String sql = "SELECT ItemName FROM inventory WHERE ItemId = @itemId";
+                    using (SqlCommand command = new(sql, connection))
+                    {
+                        command.Parameters.AddWithValue("@itemId", itemId);
+                        connection.Open();
+                        string resultItemName = Convert.ToString(command.ExecuteScalar());
+                        return resultItemName;
+                    }
+                }
+            }
             public String GetCustomerAddress(int custId)
             {
                 SqlConnection connection = GetConnection(SqlStr);
-                //SqlConnection connection = SqlStr;
                 using (connection)
                 {
                     String sqlCommand = "SELECT HomeAddress FROM customer WHERE CustomerId = @custId";
@@ -165,7 +207,33 @@ namespace deliver
                     }
                 }
             }
-            public List<List<String>> DBListOrders(int custId)  //lists orders based on CustomerId
+            public int GetCustomerId(int MemberId)  // returns customerId based on MemberId, -1 if doesnt exist
+            {
+                SqlConnection connection = GetConnection(SqlStr);
+                using (connection)
+                {
+                    String sqlCommand = "SELECT CustomerId FROM customer WHERE MemberId = @memId";
+                    using (SqlCommand command = new(sqlCommand, connection))
+                    {
+                        command.Parameters.AddWithValue("@memId", MemberId);
+                        connection.Open();
+                        using (SqlDataReader reader = command.ExecuteReader())
+                        {
+                            if (reader.Read())
+                            {
+                                int resultId = reader.GetInt32(0);
+                                return resultId;
+                            }
+                            else
+                            {
+                                System.Console.WriteLine("nothing to read here");
+                                return -1;
+                            }
+                        }
+                    }
+                }
+            }
+            public List<List<String>> DBListOrders(int custId)  //lists orders based on CustomerId. each list contains an orderId, address and status
             {
                 SqlConnection connection = GetConnection(SqlStr);
                 using (connection)
@@ -183,9 +251,9 @@ namespace deliver
                         {
                             List<string> orderDetail = new List<string>
                             {
-                                read.GetInt32(0).ToString(),
-                                read.GetString(1),
-                                read.GetString(2)
+                                read.GetInt32(0).ToString(),//order id
+                                read.GetString(1),          //address
+                                read.GetString(2)           //status
                             };
                             orderList.Add(orderDetail);
                         }
@@ -193,7 +261,7 @@ namespace deliver
                     }
                 }
             }
-            public List<String> DBListOrderItems(int orderId)  // lists an OrderId's Items
+            public List<String> DBListOrderItems(int orderId)  // lists an OrderId's items (ItemIds)
             {
                 SqlConnection connection = GetConnection(SqlStr);
                 using (connection)
@@ -214,7 +282,7 @@ namespace deliver
                     }
                 }
             }
-            public override List<object> DBListItems() // dispays all items in inventory [itemId][itemName]
+            public override List<(int ItemId, String ItemName)> DBListItems() // dispays all items in inventory in tuples (itemId, itemName)
             {
                 SqlConnection connecti = GetConnection(SqlStr);
                 using (connecti)
@@ -228,18 +296,23 @@ namespace deliver
                             if (reader.HasRows)
                             {
                                 int rowCount = 0;
-                                var IdAndName = new List<object>  // list of lists
+                                List<(int,string)> idAndName = new();
+
+                                /*var IdAndName = new List<object>  // list of lists
                                 {
                                     new List<int>(),                            // list of ItemId
                                     new List<string>()                          // list of ItemName
-                                };
+                                };*/
                                 while (reader.Read())
                                 {
-                                    int conv = Convert.ToInt32(reader["ItemId"]);
-                                    ((List<int>)IdAndName[0]).Add(conv);  // adds 
-                                    ((List<string>)IdAndName[1]).Add((String)reader["ItemName"]);
+                                    //int conv = Convert.ToInt32(reader["ItemId"]);
+                                    //((List<int>)IdAndName[0]).Add(conv);  // adds 
+                                    //((List<string>)IdAndName[1]).Add((String)reader["ItemName"]);
+                                    int itmId = Convert.ToInt32(reader["ItemId"]);
+                                    string itmName = reader["ItemName"].ToString();
+                                    idAndName.Add((itmId,itmName));
                                 }
-                                return IdAndName;
+                                return idAndName;
                             }
                             else
                             {
@@ -251,9 +324,8 @@ namespace deliver
                     }
                 }
             }
-            public override int DBCheckLogin(Member mem)//returns member id if logged in, "-1" for password mismatch, "-2" for no such user
+            public override int DBCheckLogin(Member mem)// creates a usersession, returns member id if logged in, "-1" for password mismatch, "-2" for no such user
             {
-
                 SqlConnection connect = GetConnection(SqlStr);
                 using (connect)
                 {
@@ -276,6 +348,8 @@ namespace deliver
                             {
                                 System.Console.WriteLine("user logged in");
                                 System.Console.WriteLine("MemberId is " + resultMemId);
+                                int custId = this.DBGetCustomerId(resultMemId);  // retrieve customer id from DB
+                                CurrentSession = new(resultMemId, custId);  // create in-class user session
                                 return resultMemId;
                             }
                             else
@@ -323,7 +397,7 @@ namespace deliver
                     }
                 }
             }
-            public override bool DBCreateCustomer(Customer cust)
+            public override bool DBCreateCustomer(Customer cust) //
             {
                 SqlConnection connection = GetConnection(SqlStr);
                 using (connection)
@@ -331,17 +405,17 @@ namespace deliver
                     //SQL STRING BUILD
                     StringBuilder sb = new();
                     sb.Append("USE master; ");
-                    sb.Append("INSERT INTO customer (FirstName, LastName, HomeAddress, Coords, DateCreated) VALUES ");
-                    sb.Append("(@fName, @lName, @hAddress, @coords, @date);");
+                    sb.Append("INSERT INTO customer (FirstName, LastName, HomeAddress, GeoPoint, DateCreated) VALUES ");
+                    sb.Append("(@fName, @lName, @hAddress, @geoPoint, @date);");
                     String sql = sb.ToString();
 
                     using (SqlCommand command = new SqlCommand(sql, connection))
                     {
-                        command.Parameters.AddWithValue("@fName", cust.firstName);
-                        command.Parameters.AddWithValue("@lName", cust.lastName);
-                        command.Parameters.AddWithValue("@hAddress", cust.homeAddress);
-                        command.Parameters.AddWithValue("@coords", cust.coords);
-                        command.Parameters.AddWithValue("@date", cust.dateCreated);
+                        command.Parameters.AddWithValue("@fName", cust.FirstName);
+                        command.Parameters.AddWithValue("@lName", cust.LastName);
+                        command.Parameters.AddWithValue("@hAddress", cust.HomeAddress);
+                        command.Parameters.AddWithValue("@geoPoint", cust.GeoPoint);
+                        command.Parameters.AddWithValue("@date", cust.DateCreated);
                         connection.Open();
                         int rowsAffected = command.ExecuteNonQuery();
                         Console.WriteLine(rowsAffected + " row(s) inserted");
@@ -362,7 +436,7 @@ namespace deliver
                 {
                     String userToUpdate = "juju";
                     StringBuilder sb = new StringBuilder();
-                    sb.Append("UPDATE Customers SET Location = N'Some Place St' WHERE LastName = @lastName");
+                    sb.Append("UPDATE Customer SET = N'Some Place St' WHERE LastName = @lastName");
                     String sql = sb.ToString();
                     using (SqlCommand command = new SqlCommand(sql, connection))
                     {
@@ -372,7 +446,7 @@ namespace deliver
                     }
                 }
             }
-            public override void DBDeleteCustomer(String id)
+            public override void DBDeleteCustomer(int CustomerId)
             {
             }
 
