@@ -5,17 +5,17 @@ namespace deliver
         public string FirstName { get; set; } = "";
         public string LastName { get; set; } = "";
         public string HomeAddress { get; set; } = "";
-        public string GeoPoint { get; set; } = "";
+        public string Coordinates { get; set; } = "";
         public DateTime DateCreated { get; set; }
 
-        public Customer(int memberId,string firName, string lasName, string homeAdd, string geoPt)
+        public Customer(int memberId,string firName, string lasName, string homeAdd, string coords)
         : base(null, null)
         {
             MemberId = memberId;
             FirstName = firName;
             LastName = lasName;
             HomeAddress = homeAdd;
-            GeoPoint = geoPt;
+            Coordinates = coords;
             DateCreated = DateTime.Now;
         }
     }

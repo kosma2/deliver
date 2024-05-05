@@ -12,7 +12,7 @@ namespace deliver
 
             public abstract void DBdeleteOrder(int orderId);
             public abstract (int,int) InterfaceCreateOrder();
-            public abstract int DBcreateOrder(int itemId, int quantity);
+            public abstract int DBcreateOrder(int custId, int itemId, int quantity);
             public abstract int DBcreateOrderItem(int orderId, int itemId, int quantity);
             public abstract List<(int ItemId, String ItemName)> DBListItems();
             public abstract void DBAddItem(Item item);
@@ -23,7 +23,7 @@ namespace deliver
             public abstract bool DBCreateCustomer(Customer cust);
             public abstract int DBCheckLogin(Member mem);
             public abstract decimal GetItemPrice(int itemId);
+             public abstract List<(int,string)> ShowCustomers();
         }
-
     }
 }

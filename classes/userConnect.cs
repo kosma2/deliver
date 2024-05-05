@@ -3,6 +3,7 @@ using System.Data.SqlTypes;
 using System.Text;
 using Microsoft.Data.SqlClient;
 
+
 namespace deliver
 {
     partial class Program
@@ -10,6 +11,10 @@ namespace deliver
         public class userConnect : DbConnection
         {
             public UserSession CurrentSession { get; private set; }
+             public override List<(int,string)> ShowCustomers()
+            {
+                return null;
+            }
             public override int DBGetCustomerId(int memId)// retrieves MemberId from customer table
             {
                 SqlConnection connection = GetConnection(SqlStr);
@@ -77,34 +82,17 @@ namespace deliver
             }
             public override (int, int) InterfaceCreateOrder()  // interface for creating order, returns a tuple (item#, quantity)
             {
-                /*/userConnect usConnect = new userConnect();
-                List<(int, String)> dispItems = DBListItems();
-                var subSetString = dispItems[1] as List<string>;
-                foreach (string item in subSetString)
-                {
-                    System.Console.WriteLine(item);
-                }
+                userConnect usConnect = new userConnect();
+                
                 System.Console.WriteLine("please order #");
-                String userInput = System.Console.ReadLine();
-                int inputItemId = 0;
-                int.TryParse(userInput, out int number);
-                var subSetInt = dispItems[0] as List<string>;
-                if (number < dispItems.Count)
-                {
-                    inputItemId = subSetInt[0][number];
-                }
-                else
-                {
-                    System.Console.WriteLine("invalid number");
-                }
+                int itemNo = Convert.ToInt32(Console.ReadLine());
                 System.Console.WriteLine("how many you want?");
-                int quant = Convert.ToInt32(Console.ReadLine());*/
-                return (4,4);//(inputItemId, quant);
+                int quant = Convert.ToInt32(Console.ReadLine());
+                return (itemNo,quant);//(inputItemId, quant);
 
             }
-            public override int DBcreateOrder(int itemId, int quantity) //returns orderId
+            public override int DBcreateOrder(int custId, int itemId, int quantity) //returns orderId
             {
-                int custId = 3;
                 String custAddress = GetCustomerAddress(custId);
                 System.Console.WriteLine(custAddress);
                 Order order = new(custId, custAddress);
@@ -123,10 +111,10 @@ namespace deliver
                     {
                         resultOrderId = Convert.ToInt32(command.ExecuteScalar());
 
-                        //return resultOrderId;
                     }
                     DBcreateOrderItem(resultOrderId, itemId, quantity);
-                    return 0;
+                    return resultOrderId;
+
                 }
 
 
@@ -207,7 +195,7 @@ namespace deliver
                     }
                 }
             }
-            public int GetCustomerId(int MemberId)  // returns customerId based on MemberId, -1 if doesnt exist
+            /*public int GetCustomerId(int MemberId)  // returns customerId based on MemberId, -1 if doesnt exist
             {
                 SqlConnection connection = GetConnection(SqlStr);
                 using (connection)
@@ -232,7 +220,7 @@ namespace deliver
                         }
                     }
                 }
-            }
+            }*/
             public List<List<String>> DBListOrders(int custId)  //lists orders based on CustomerId. each list contains an orderId, address and status
             {
                 SqlConnection connection = GetConnection(SqlStr);
@@ -397,16 +385,17 @@ namespace deliver
                     }
                 }
             }
-            public override bool DBCreateCustomer(Customer cust) //
+            public override bool DBCreateCustomer(Customer cust)
             {
                 SqlConnection connection = GetConnection(SqlStr);
                 using (connection)
                 {
+                    //IMPORTANT: To construct the SQL command securely while including the execution of the geometry::STPointFromText function directly in the command text (due to the nature of spatial data functions), non spatial data is parameterized while the spatial part is insterted dynamcally.
                     //SQL STRING BUILD
                     StringBuilder sb = new();
                     sb.Append("USE master; ");
                     sb.Append("INSERT INTO customer (FirstName, LastName, HomeAddress, GeoPoint, DateCreated) VALUES ");
-                    sb.Append("(@fName, @lName, @hAddress, @geoPoint, @date);");
+                    sb.Append("(@fName, @lName, @hAddress, geometry::STGeomFromText('POINT('+ @Coords +')', 4326), @date);");
                     String sql = sb.ToString();
 
                     using (SqlCommand command = new SqlCommand(sql, connection))
@@ -414,7 +403,10 @@ namespace deliver
                         command.Parameters.AddWithValue("@fName", cust.FirstName);
                         command.Parameters.AddWithValue("@lName", cust.LastName);
                         command.Parameters.AddWithValue("@hAddress", cust.HomeAddress);
-                        command.Parameters.AddWithValue("@geoPoint", cust.GeoPoint);
+                        //string geoFormat = $"geometry::STGeomFromText('POINT({cust.GeoPoint})', 4326)";
+                        //string geoFormat = "geometry::STGeomFromText('POINT(-74.006 40.7128)', 4326)";
+                        command.Parameters.AddWithValue("@Coords", cust.Coordinates);
+                        //System.Console.WriteLine(geoFormat);
                         command.Parameters.AddWithValue("@date", cust.DateCreated);
                         connection.Open();
                         int rowsAffected = command.ExecuteNonQuery();

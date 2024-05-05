@@ -54,14 +54,52 @@ namespace deliver
             string custLName = Console.ReadLine();
             System.Console.WriteLine(" customer addy pls");
             string custAddy = Console.ReadLine();
-            System.Console.WriteLine(" customer LAT pls");
-            string lattitude = Console.ReadLine();
             System.Console.WriteLine(" customer LON pls");
             string longitude = Console.ReadLine();
-            string coords = $"geometry::STPointFromText('POINT({lattitude} {longitude})', 4326)";
+            System.Console.WriteLine(" customer LAT pls");
+            string lattitude = Console.ReadLine();
+            string coords = $"{longitude} {lattitude}";
             Customer cust = new(memberId, custName, custLName, custAddy, coords);
             System.Console.WriteLine("customer " + custLName + " created");
             return cust;
+        }
+        public static (string, string, List<string>, int) InputCreateAirMarker() //takes Geo object type: line or polygon, and their points: 2 for line, more for polygon. If polygon, first point is also added last to close the shape.
+        {
+            int bufferSize = 0;
+            List<String> pointList = new();
+            System.Console.WriteLine("What type of shape?");
+            String shape = Console.ReadLine();
+            System.Console.WriteLine("Name for the shape marker?");
+            String shapeName = Console.ReadLine();
+            String firstPoint = null;
+            while(true)
+            {
+                System.Console.WriteLine("Keep entering Points or [Enter]");
+                String input = Console.ReadLine();
+            if(string.IsNullOrEmpty(input))
+            {
+                if(shape == "polygon")
+                {
+                    pointList.Add(firstPoint);  // closes the polygon
+                }
+
+                break;
+            }else{
+                pointList.Add(input);
+                if(firstPoint == null)
+                {
+                    firstPoint=input;   // keep the first point
+                }
+                
+            }
+            }
+            return (shape,shapeName, pointList, bufferSize);
+        }
+        public static int InputDeleteAirmarker()
+        {
+            System.Console.WriteLine("Which air marker do you want to delete? (ID)");
+            int inputId = Convert.ToInt32(Console.ReadLine());
+            return inputId;
         }
     }
 }
