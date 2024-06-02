@@ -204,9 +204,9 @@ namespace deliver
                     case "6":
                         GeoConnect geoConnection2 = new();
                         geoConnection2.SqlStr = config.GetConnectionString("DefaultConnection");
-                        List<(int, string)> markers = geoConnection2.ShowAirMarkers();
-                        foreach ((int, string) item in markers)
-                            System.Console.WriteLine($"marker id: {item.Item1} Shape Name: {item.Item2}");
+                        List<(int, string, string,string)> markers = geoConnection2.ShowAirMarkers();
+                        foreach ((int, string, string, string) item in markers)
+                            System.Console.WriteLine($"marker id: {item.Item1} Shape Name: {item.Item2} Marker Name: {item.Item3} Geo: {item.Item4}");
                         break;
                     case "7":
                         GeoConnect geoConnection3 = new();
